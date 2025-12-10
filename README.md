@@ -35,8 +35,13 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ## API
 ### `POST /clean`
-Multipart upload (`file`) with optional form fields: `max_resolution`, `inpaint_radius`, `subtitle_intensity_threshold`.
-Returns processing stats plus a download URL (local path by default, or an S3 link when storage is configured).
+- Provide either a multipart `file` upload or a `file_url` (HTTP/HTTPS) plus optional form fields: `max_resolution`, `inpaint_radius`, `subtitle_intensity_threshold`, and `callback_url`.
+- Files larger than **100 MB** are rejected during upload/download before processing starts.
+- The endpoint responds immediately with `{ "status": "accepted", "task_id": "<id>" }` while work continues in the background queue.
+- When processing finishes the task result includes timing, cleaning stats, and the final download link (local path by default or an S3 URL when storage is configured). If `callback_url` is provided, the same payload is POSTed to that URL.
+
+### `GET /tasks/{task_id}`
+Poll task status (`pending`, `processing`, `completed`, `failed`) and retrieve the finished payload using the `task_id` returned from `/clean`.
 
 ### `POST /preview`
 Returns single-frame before/after PNGs (base64) plus mask for debugging heuristics.
