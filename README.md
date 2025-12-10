@@ -7,7 +7,6 @@ FastAPI service for removing subtitle overlays from trading videos using PaddleO
 - CPU-only Navier-Stokes inpainting via OpenCV
 - Streaming frame pipeline without intermediate disk writes
 - `/clean`, `/preview`, `/health` HTTP endpoints
-- Optional webhook callbacks plus `/tasks/{id}` status polling for long jobs
 - Docker image ready for EasyPanel deployments (port 8000)
 
 ## Project Layout
@@ -36,10 +35,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ## API
 ### `POST /clean`
-Multipart upload (`file`) with optional form fields: `max_resolution`, `inpaint_radius`, `subtitle_intensity_threshold`, `callback_url`.
-
-- Without `callback_url` the endpoint streams the processing and returns the cleaned video stats once finished.
-- With `callback_url` the upload is accepted asynchronously: the response includes `task_id`, processing happens in the background, and the service POSTs the final payload (success or failure) to the provided URL. You can also poll `/tasks/{task_id}`.
+Multipart upload (`file`) with optional form fields: `max_resolution`, `inpaint_radius`, `subtitle_intensity_threshold`.
+Returns processing stats plus a download URL (local path by default, or an S3 link when storage is configured).
 
 ### `POST /preview`
 Returns single-frame before/after PNGs (base64) plus mask for debugging heuristics.
@@ -47,8 +44,20 @@ Returns single-frame before/after PNGs (base64) plus mask for debugging heuristi
 ### `GET /health`
 Simple readiness probe.
 
-### `GET /tasks/{task_id}`
-Returns the stored status/result for asynchronous jobs created via `callback_url`.
+## S3 Uploads
+By default cleaned videos are written to the local `output/` folder. To automatically upload them to object storage and receive a downloadable link, configure the following environment variables:
+
+- `S3_BUCKET` (required): target bucket name.
+- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (required unless you rely on instance roles).
+- `AWS_DEFAULT_REGION` or `S3_REGION`: region used for signing/URL building.
+- `S3_PREFIX` (optional): key prefix such as `cleaned-videos`.
+- `S3_ENDPOINT_URL` (optional): custom endpoint for S3-compatible storage (e.g., MinIO).
+- `S3_FORCE_PATH_STYLE` (optional): set to `true` for providers that require path-style URLs.
+- `S3_OBJECT_ACL` (optional): ACL to apply (e.g., `public-read`).
+- `S3_PUBLIC_BASE_URL` (optional): base URL for already-public buckets, e.g. `https://cdn.example.com/videos`.
+- `S3_PRESIGN_SECONDS` (optional): if set to a positive integer, the API returns a presigned URL that expires after the provided number of seconds.
+
+When `S3_BUCKET` is set, `/clean` uploads the video to the bucket, deletes the local artifact, and returns the resulting URL (either presigned or public, depending on your settings).
 
 ## Docker
 Build and run:
