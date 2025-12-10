@@ -10,6 +10,7 @@ from typing import Optional
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from loguru import logger
 
 from .video_processor import VideoProcessingOptions, VideoProcessor
 
@@ -61,6 +62,7 @@ async def clean_video(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
+        logger.exception("Video processing failed")
         raise HTTPException(status_code=500, detail="Processing failed") from exc
     finally:
         input_path.unlink(missing_ok=True)
@@ -100,6 +102,7 @@ async def preview_frame(
             ),
         )
     except Exception as exc:  # noqa: BLE001
+        logger.exception("Preview generation failed")
         raise HTTPException(status_code=500, detail="Preview failed") from exc
     finally:
         input_path.unlink(missing_ok=True)
