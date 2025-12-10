@@ -26,12 +26,11 @@ DOWNLOAD_TIMEOUT_SECONDS = float(os.getenv("DOWNLOAD_TIMEOUT_SECONDS", "120"))
 
 app = FastAPI(title="Subtitle Cleaner", version="0.2.0")
 app.add_middleware(
-    CORSMiddleware(
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 OUTPUT_DIR = Path("output")
